@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Example</title>
+    <style>
+        body {
+            font-family: 'Helvetica', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #ff0000;
+            flex-direction: column;
+            margin: 0;
+        }
+        #container {
+            width: 1000px;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 20px 20px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            text-align: center;
+            position: relative;
+            padding: 20px;
+        }
+        #upload-area {
+            border: 3px dashed #aaa;
+            width: 400px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            background-color: #fff;
+            border-radius: 15px;
+            transition: border-color 0.3s ease;
+        }
+        #upload-area.hidden {
+            display: none;
+        }
+        #upload-area:hover {
+            border-color: #888;
+        }
+        /* Styling for the file content container */
+        #file-content {
+            width: 90%;
+            height: 350px;
+            font-size: 18px;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            resize: none;
+            box-sizing: border-box;
+            overflow-y: auto; /* Allow scrolling */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <div id="upload-area">Select The Text File</div>
+
+        <textarea id="file-content" style="display: none;" readonly></textarea>
+    </div>
+
+    <input type="file" id="file-input" style="display: none;">
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileContent = document.getElementById('file-content');
+        const fileInput = document.getElementById('file-input');
+
+        // Function to load the file content and display it in the textarea
+        function loadFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const lines = event.target.result.split('\n'); // Split file into lines
+                const allLines = lines.join('\n'); // Join lines with newlines to preserve formatting
+                fileContent.value = allLines; // Set all lines into textarea
+                fileContent.style.display = 'block'; // Show the textarea
+                uploadArea.classList.add('hidden'); // Hide the upload area
+            };
+            reader.readAsText(file);
+        }
+
+        // Handle file selection via file input
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            loadFile(file);
+        });
+
+        // Allow clicking the upload area to open the file input
+        uploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+    </script>
+
+</body>
+</html>
