@@ -3,32 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload Example</title>
+    <title>Text Typing Practice</title>
     <style>
         body {
-            font-family: 'Helvetica', sans-serif;
+            font-family: 'Courier New', monospace;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #ff0000;
-            flex-direction: column;
             margin: 0;
+            background-color: #ff0000;
         }
-        #container {
-            width: 1000px;
-            height: 500px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background-color: #fff;
-            box-shadow: 20px 20px 20px rgba(0, 0, 0, 0.1);
-            border-radius: 15px;
-            text-align: center;
-            position: relative;
-            padding: 20px;
-        }
+
         #upload-area {
             border: 3px dashed #aaa;
             width: 400px;
@@ -39,55 +25,193 @@
             border-radius: 15px;
             transition: border-color 0.3s ease;
         }
+
         #upload-area.hidden {
             display: none;
         }
+
         #upload-area:hover {
             border-color: #888;
         }
-        /* Styling for the file content container */
+
         #file-content {
             width: 90%;
-            height: 350px;
             font-size: 18px;
             padding: 10px;
             border-radius: 10px;
             border: 1px solid #ddd;
-            resize: none;
-            box-sizing: border-box;
-            overflow-y: auto; /* Allow scrolling */
+            display: block;
+            white-space: pre-wrap; /* Make sure the text wraps properly */
+            margin-top: 20px;
+            position: relative; /* Required to position the pseudo cursor absolutely */
+        }
+
+        .original-text {
+            color: lightgrey;
+        }
+
+        .correct {
+            color: green;
+        }
+
+        .incorrect {
+            color: red;
+        }
+
+        .space-correct {
+            color: #888;
+        }
+
+        .space-incorrect {
+            color: red;
+        }
+
+        #moving-cursor {
+            width: 2px;
+            height: 20px;
+            background-color: black;
+            position: absolute;
+            top: 0; /* Initially at the top */
+            left: 0; /* Initially at the left */
+            animation: blink 1s step-start infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
         }
     </style>
 </head>
 <body>
 
-    <div id="container">
-        <div id="upload-area">Select The Text File</div>
-
-        <textarea id="file-content" style="display: none;" readonly></textarea>
-    </div>
-
+    <div id="upload-area">Select The Text File</div>
+    <div id="file-content"></div>
     <input type="file" id="file-input" style="display: none;">
 
     <script>
         const uploadArea = document.getElementById('upload-area');
         const fileContent = document.getElementById('file-content');
         const fileInput = document.getElementById('file-input');
+        let originalText = '';  // The full text from the file, split by lines
+        let typedText = '';     // The text typed by the user, as a single string
+        let cursorPos = { x: 0, y: 0 }; // Position of the cursor (x for character, y for line)
+        let charWidth = 0;      // Width of a single character (for correct cursor position)
+        let lineHeight = 20;    // Approximate height of a line of text (based on font size)
 
-        // Function to load the file content and display it in the textarea
+        // Function to load the file and display the content
         function loadFile(file) {
             const reader = new FileReader();
             reader.onload = function(event) {
-                const lines = event.target.result.split('\n'); // Split file into lines
-                const allLines = lines.join('\n'); // Join lines with newlines to preserve formatting
-                fileContent.value = allLines; // Set all lines into textarea
-                fileContent.style.display = 'block'; // Show the textarea
-                uploadArea.classList.add('hidden'); // Hide the upload area
+                originalText = event.target.result.split('\n');  // Split the text by lines
+                displayText();  // Display the full text in light grey
             };
             reader.readAsText(file);
         }
 
-        // Handle file selection via file input
+        // Function to display the full text in light grey
+        function displayText() {
+            fileContent.innerHTML = '';  // Clear previous content
+            for (let i = 0; i < originalText.length; i++) {
+                const lineDiv = document.createElement('div');
+                lineDiv.classList.add('original-text');
+                lineDiv.textContent = originalText[i];
+                fileContent.appendChild(lineDiv);
+            }
+            createMovingCursor();  // Create a cursor for typing
+            calculateCharWidth();  // Measure the character width
+        }
+
+        // Function to create a blinking cursor for typing
+        function createMovingCursor() {
+            const cursor = document.createElement('span');
+            cursor.id = 'moving-cursor';
+            fileContent.appendChild(cursor);
+            moveCursorToStart();  // Position cursor at the start
+        }
+
+        // Function to calculate the width of a character in the text
+        function calculateCharWidth() {
+            const span = document.createElement('span');
+            span.style.visibility = 'hidden';  // Make it invisible
+            span.textContent = 'A';  // Use a single character for measurement
+            document.body.appendChild(span);  // Append it to the document
+            charWidth = span.offsetWidth;  // Get the width of the character
+            document.body.removeChild(span);  // Remove the measurement span
+        }
+
+        // Function to update the cursor position
+        function moveCursorToStart() {
+            const cursor = document.getElementById('moving-cursor');
+            if (cursor && charWidth > 0) {
+                cursor.style.left = `${cursorPos.x * charWidth}px`;  // Dynamically position cursor based on character width
+                cursor.style.top = `${cursorPos.y * lineHeight}px`;  // Position cursor based on line height
+            }
+        }
+
+        // Function to handle the typing and update the display
+        function handleTyping(event) {
+            let typedChar = event.key;
+
+            if (typedChar === 'Backspace') {
+                typedText = typedText.slice(0, -1);
+                if (cursorPos.x > 0) {
+                    cursorPos.x--;
+                } else if (cursorPos.y > 0) {
+                    cursorPos.y--;
+                    cursorPos.x = originalText[cursorPos.y].length;  // Go to the end of the previous line
+                }
+            } else if (typedChar === ' ') {
+                typedText += ' ';
+                cursorPos.x++;
+            } else if (typedChar.length === 1) {
+                typedText += typedChar;
+                cursorPos.x++;
+            }
+
+            updateDisplay();
+        }
+
+        // Function to update the typed text and apply colors
+        function updateDisplay() {
+            let displayText = '';
+            let typedLines = typedText.split('\n');  // Split the typed text into lines
+
+            // Loop through each line of the original text
+            for (let y = 0; y < originalText.length; y++) {
+                const originalLine = originalText[y];
+                let typedLine = typedLines[y] || '';  // Get the typed line, or an empty string if none
+
+                // Add the original line in light grey and compare with typed text
+                displayText += '<div>';
+                for (let x = 0; x < originalLine.length; x++) {
+                    const originalChar = originalLine[x];
+                    const typedChar = typedLine[x] || '';
+
+                    // Check the typed character against the original text
+                    if (typedChar === originalChar) {
+                        displayText += `<span class="correct">${typedChar}</span>`;  // Correctly typed characters
+                    } else if (typedChar === ' ' && originalChar === ' ') {
+                        displayText += `<span class="space-correct"> </span>`;  // Correct space
+                    } else if (typedChar === '') {
+                        displayText += `<span class="original-text">${originalChar}</span>`; // Original text (not typed yet)
+                    } else {
+                        displayText += `<span class="incorrect">${typedChar}</span>`;  // Incorrect characters
+                    }
+                }
+
+                // For any extra typing beyond the original line, show as incorrect
+                if (typedLine.length > originalLine.length) {
+                    displayText += `<span class="incorrect">${typedLine.slice(originalLine.length)}</span>`;
+                }
+
+                displayText += '</div>';
+            }
+
+            fileContent.innerHTML = displayText;  // Update the file content area
+            moveCursorToStart();  // Move the cursor based on the current position
+        }
+
+
+        // Handle file selection
         fileInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
             loadFile(file);
@@ -97,6 +221,10 @@
         uploadArea.addEventListener('click', function() {
             fileInput.click();
         });
+
+        // Handle keypresses for typing
+        document.addEventListener('keydown', handleTyping);
+
     </script>
 
 </body>
