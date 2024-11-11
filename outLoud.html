@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leer Archivo</title>
+    <style>
+        body {
+            font-family: 'Helvetica', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+            flex-direction: column;
+            margin: 0;
+        }
+        #upload-area {
+            border: 3px dashed #aaa;
+            width: 500px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            transition: border-color 0.3s ease;
+        }
+        #upload-area.dragging {
+            border-color: #666;
+        }
+        #upload-area:hover {
+            border-color: #888;
+        }
+        #read-aloud-btn, #pause-btn, #speed-meter {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #read-aloud-btn:hover, #pause-btn:hover, #speed-meter:hover {
+            background-color: #0056b3;
+        }
+        #text-container {
+            width: 800px;
+            height: 200px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .line {
+            margin: 5px 0;
+            white-space: nowrap;
+        }
+
+        .current-line {
+            background-color: #ffeb3b;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="upload-area">
+        Arrastra y suelta tu archivo aquí, o haz clic para seleccionar.
+    </div>
+
+    <button id="read-aloud-btn" style="display: none;">Leer en voz alta</button>
+    <button id="pause-btn" style="display: none;">Pausar</button>
+    <input type="range" id="speed-meter" style="display: none;" min="0.1" max="2" step="0.1" value="1">
+    <label for="speed-meter" id="speed-label" style="display: none;">Velocidad</label>
+
+    <input type="file" id="file-input" style="display: none;">
+
+    <div id="text-container" style="display: none;">
+        <div id="text-lines"></div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('upload-area');
+        const fileInput = document.getElementById('file-input');
+        const readAloudButton = document.getElementById('read-aloud-btn');
+        const pauseButton = document.getElementById('pause-btn');
+        const speedMeter = document.getElementById('speed-meter');
+        const speedLabel = document.getElementById('speed-label');
+        const textContainer = document.getElementById('text-container');
+        const textLines = document.getElementById('text-lines');
+        
+        let fileContent = '';  
+        let utterance = null;  
+        let lines = [];  
+        let currentLineIndex = 0;  
+
+        // Function to load file content
+        function loadFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                fileContent = event.target.result;  
+                lines = fileContent.split('\n');  
+                
+                // Display the first 3 lines
+                updateTextDisplay();
+
+                // Hide upload area and show control buttons
+                uploadArea.style.display = 'none';
+                readAloudButton.style.display = 'block';
+                pauseButton.style.display = 'block';
+                speedMeter.style.display = 'block';
+                speedLabel.style.display = 'block';
+                textContainer.style.display = 'block';  
+            };
+            reader.readAsText(file);
+        }
+
+        // Handle drag and drop
+        uploadArea.addEventListener('dragover', function(event) {
+            event.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', function() {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', function(event) {
+            event.preventDefault();
+            uploadArea.classList.remove('dragging');
+            const file = event.dataTransfer.files[0];
+            loadFile(file);
+        });
+
+        // Handle file input click
+        uploadArea.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            loadFile(file);
+        });
+
+        // Update the displayed text (show only 3 lines)
+        function updateTextDisplay() {
+            textLines.innerHTML = '';  
+
+            let end = Math.min(currentLineIndex + 3, lines.length);
+            for (let i = currentLineIndex; i < end; i++) {
+                const lineElement = document.createElement('div');
+                lineElement.className = 'line';
+                lineElement.textContent = lines[i];
+                if (i === currentLineIndex) {
+                    lineElement.classList.add('current-line');  
+                }
+                textLines.appendChild(lineElement);
+            }
+        }
+
+        // Function to delete the first line after it is read
+        function removeReadLine() {
+            currentLineIndex++;
+            updateTextDisplay();  
+        }
+
+        // Read aloud function (async)
+        async function readAloud() {
+            if (currentLineIndex >= lines.length) {
+                return;  
+            }
+
+            // Create a speech utterance for the current line
+            utterance = new SpeechSynthesisUtterance(lines[currentLineIndex]);
+            utterance.lang = 'es-ES';
+            utterance.rate = speedMeter.value;
+
+            // When the utterance ends, update text display and read the next line
+            utterance.onend = function() {
+                removeReadLine();  // Update the visual lines after the speech ends
+                if (currentLineIndex < lines.length) {
+                    readAloud();  // Continue reading the next line
+                }
+            };
+
+            // Speak the current line
+            speechSynthesis.speak(utterance);
+        }
+
+        // Pause functionality
+        pauseButton.addEventListener('click', function() {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.pause();
+                pauseButton.textContent = 'Reanudar';
+            } else {
+                speechSynthesis.resume();
+                pauseButton.textContent = 'Pausar';
+            }
+        });
+
+        // Handle click event for the read aloud button
+        readAloudButton.addEventListener('click', function() {
+            if (lines.length > 0) {
+                readAloud(); 
+            }
+        });
+
+        // Adjust speech speed based on slider value
+        speedMeter.addEventListener('input', function() {
+            if (utterance) {
+                utterance.rate = speedMeter.value;
+                speechSynthesis.cancel();
+                speechSynthesis.speak(utterance);
+            }
+        });
+    </script>
+
+</body>
+</html>
