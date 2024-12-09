@@ -11,10 +11,40 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f4f4f4;
+            background-color: red;
+            animation: rainbowBackground 75s ease-in-out infinite;
             flex-direction: column;
             margin: 0;
         }
+
+        @keyframes rainbowBackground {
+            0% {
+                background-color: red;
+            }
+            14% {
+                background-color: violet;
+            }
+            28% {
+                background-color: yellow;
+            }
+            42% {
+                background-color: green;
+            }
+            57% {
+                background-color: blue;
+            }
+            71% {
+                background-color: orange;
+            }
+            85% {
+                background-color: indigo;
+            }
+            100% {
+                background-color: red;
+            }
+        }
+
+
         #flashcard-container {
             width: 500px;
             height: 350px;
@@ -104,7 +134,8 @@
         Drag & drop your file here, or click to select.
     </div>
 
-    <button id="read-aloud-btn">Read Aloud</button>
+    <!--   <button id="read-aloud-btn">Read Aloud</button>         -->
+    
 
     <input type="file" id="file-input" style="display: none;">
 
